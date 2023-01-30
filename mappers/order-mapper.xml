@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="mappers.order">
+	<select id="getOrderListBySellerId" resultType="OrderVo">
+ 		select * from 
+    	  (select rownum rnum, a.* from 
+        	(select tbo.*, tbp.pro_name, tbpp.pro_pic mainpic, tbod.regdate
+	    <include refid="orderList"/>
+			<if test="order_step > 0">
+			  and tbo.order_step = #{order_step}
+			</if>
+ 			 order by tbo.order_step asc, tbo.order_no desc) a)
+		where rnum between #{startRow} and #{endRow}
+	</select>
+	
+	<select id="getOrderInfoByNo" resultType="OrderVo">
+		select * from tbl_order
+		where order_no = #{order_no}
+	</select>
+ 	
+ 	<select id="getOrderDateByNo" resultType="OrderDateVo">
+ 		select * from tbl_order_date
+ 		where order_no = #{order_no}
+ 		order by order_step 
+ 	</select>
+ 	
+ 	<insert id="ModifyStep">
+ 		insert into tbl_order_date
+ 		(order_no, order_step)
+ 		values(#{order_no}, #{order_step} + 1)
+ 	</insert>
+ 	
+ 	<update id="UpdateStep">
+ 		update tbl_order
+ 		set order_step = #{order_step} + 1
+ 		where order_no = #{order_no} 
+ 	</update>
+ 	
+ 	<update id="SetTracking">
+ 		update tbl_order
+ 		set tracking_no = #{tracking_no}
+ 		where order_no = #{order_no} 
+ 	</update>
+ 	
+ 	<select id="getOrderListforBoard" resultType="OrderVo">
+ 		select * from 
+ 		  (select rownum rnum, a.* from
+ 		    (select tbo.order_no, tbo.order_step, tbp.pro_no,
+ 		     tbp.pro_name, tbpp.pro_pic mainpic, tbod.regdate
+	         <include refid="orderList"/>
+ 		     <![CDATA[
+ 		       and tbo.order_step  < 3
+ 		     order by tbod.regdate asc) a)
+ 		where rownum <= 4]]>
+ 	</select>
+ 	
+ 	<select id="getIsCorrectId" resultType="int">
+ 		select count(*) from
+		  (select tbo.order_no, tbp.seller_id 
+		   from tbl_order tbo, tbl_product tbp
+		   where tbo.pro_no = tbp.pro_no)
+		where order_no = #{order_no} and seller_id = #{seller_id}
+ 	</select>
+ 	
+	<select id="getOrderCount" resultType="int">
+		select count(*)
+		from tbl_order tbo, tbl_product tbp
+		where tbp.seller_id = #{seller_id}
+		  and tbo.pro_no = tbp.pro_no 
+		<if test="order_step > 0">
+		  and tbo.order_step = #{order_step}
+		</if>
+	</select>
+	
+	<select id="getLeftOrder" resultType="int">
+		<![CDATA[
+		select count(*) from tbl_order tbo, tbl_product tbp
+		where tbp.seller_id = #{seller_id}
+		  and tbo.pro_no = tbp.pro_no
+		  and tbo.order_step < 3
+		]]>
+	</select>
+	
+	<select id="getWeekOrder" resultType="int">
+		select count(*)
+		from tbl_order tbo, tbl_order_date tbod 
+		where tbod.regdate >= to_char(sysdate-7)
+		  and tbo.order_no = tbod.order_no
+		  and tbod.order_step = 1
+		  and tbo.pro_no in 
+		    (select pro_no 
+		     from tbl_product
+		     where seller_id = #{seller_id})
+	</select>
+	
+	<select id="getWeekPrice" resultType="int">
+		select nvl(sum(tbo.order_count * tbp.pro_price), 0)
+		from tbl_order tbo, tbl_order_date tbod, tbl_product tbp
+		where tbod.regdate >= to_char(sysdate-7)
+	  	  and tbod.order_step = 2
+	  	  and tbo.order_no = tbod.order_no
+	  	  and tbo.pro_no = tbp.pro_no
+	  	  and tbp.seller_id = #{seller_id}
+	</select>
+ 	
+ 	<select id="getOrderCountInMain" resultType="OrderCountVo">
+ 		select order_step, count(*) as order_count
+		from tbl_order tbo, tbl_product tbp
+		where tbo.pro_no = tbp.pro_no
+  	 	   and tbp.seller_id = #{seller_id}
+  	  	  and order_step between 1 and 3
+		group by order_step
+		order by order_step
+ 	</select>
+ 	
+ 	<select id="weekOrderComplited" resultType="int">
+ 		select count(*)
+		from tbl_order tbo, tbl_order_date tbod 
+		where tbod.regdate >= to_char(sysdate-7)
+		  and tbo.order_no = tbod.order_no
+		  and tbod.order_step = 4
+		  and tbo.pro_no in 
+		    (select pro_no 
+		     from tbl_product
+		     where seller_id = #{seller_id})
+ 	</select>
+ 	
+ 	<sql id="orderList">
+ 		from tbl_order tbo, tbl_order_date tbod, tbl_product tbp, tbl_productpic tbpp
+		where tbo.pro_no in(select pro_no from tbl_product where seller_id = #{seller_id})
+ 		  and tbo.pro_no = tbp.pro_no 
+ 		  and tbpp.pro_pic_main = 1 
+ 		  and tbpp.pro_no = tbp.pro_no
+ 		  and tbo.order_no = tbod.order_no
+ 		  and tbo.order_step = tbod.order_step
+ 	</sql>
+</mapper>

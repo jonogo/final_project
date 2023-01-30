@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="mappers.board">
+
+	<select id="listArticle" resultType="ProductVo">
+		select * from
+        (select rownum rnum, a.* from
+        (select p.*, pp.pro_pic  as mainpic 
+        from tbl_product p, tbl_productpic pp
+        where pp.pro_pic_main = 1 
+        and pp.pro_no = p.pro_no
+        <if test="pro_status != null and pro_status != ''">
+			and pro_status = #{pro_status}
+		</if>
+		<if test="pro_category != null and pro_category != ''">
+			and pro_category = #{pro_category}
+		</if>
+		order by p.pro_no desc
+        ) a)
+        where rnum between #{startRow} and #{endRow}
+	</select>
+	<!-- 글조회 -->
+	<select id="selectByPro_no" resultType="ProductVo">
+		select * from tbl_product
+		where pro_no=#{pro_no}
+	</select>
+
+	<!-- 상품 모든사진 조회 -->
+	<select id="Propics" resultType="ProductPicVo">
+		select * from tbl_productpic
+		where pro_no=#{pro_no}
+	</select>
+	
+	<select id="pro_size_count" resultType="ProductCountVo"> 
+		select * from tbl_productcount
+		where pro_no=#{pro_no}
+	</select>
+
+	<!-- 글갯수 -->
+	<select id="getCount" resultType="int">
+		select count(*)
+        from tbl_product p, tbl_productpic pp
+        where pp.pro_pic_main = 1 
+        and pp.pro_no = p.pro_no
+		<if test="pro_status != null and pro_status != ''">
+			and pro_status = #{pro_status}
+		</if>
+		<if test="pro_category != null and pro_category != ''">
+			and pro_category = #{pro_category}
+		</if>
+	</select>
+
+
+</mapper>

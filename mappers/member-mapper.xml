@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="mappers.member">
+	<!-- 구매자 중복 아이디 검사 -->
+	<select id="checkId" resultType="MemberVo">
+		select * from tbl_member
+		where userid=#{userid}
+	</select>
+	<!-- 구매자 회원 가입 -->
+	<insert id="registerMember">
+		insert into tbl_member(userid,userpw,email,username,userpic,user_addr1,user_addr2,user_addr3)
+		values(#{userid}, #{userpw},#{email},#{username},#{userpic},#{user_addr1},#{user_addr2},#{user_addr3})
+	</insert>
+	<!-- 구매자 로그인 -->
+	<select id="login" resultType="MemberVo">
+		select * from tbl_member
+		where userid=#{userid}
+		and userpw=#{userpw}
+	</select>
+	
+	<!-- 유저 확인, 비밀번호 업데이트 / 구매자 -->
+	<select id="isExistMember_customer" resultType="int">
+		select count(*) from tbl_member
+			where userid=#{userid}
+			and email=#{email}
+	</select>
+	<update id="updatePassword_customer">
+		update tbl_member set
+			userpw=#{userpw}
+		where userid=#{userid}
+	</update>
+	
+	<!-- 회원 목록 -->
+	<select id="getMemberList" resultType="MemberVo">
+		select * from tbl_member
+		order by userid
+	</select>
+</mapper>

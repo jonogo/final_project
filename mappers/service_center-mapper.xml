@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="mappers.service_center">
+	<insert id="send_question">
+		insert into tbl_question(q_no, userid, pro_no, q_title, q_content, q_kind)
+		values(sequence_question_no.nextval, #{userid}, #{pro_no}, #{q_title}, #{q_content}, #{q_kind})
+	</insert>
+</mapper>

@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="mappers.page">
+	<update id="modifyMember">
+		update tbl_member set
+			username=#{username},
+			userpw=#{userpw},
+			email=#{email},
+			user_addr1=#{user_addr1},
+			user_addr2=#{user_addr2},
+			user_addr3=#{user_addr3},
+			userpic=#{userpic, jdbcType=VARCHAR}
+		where userid=#{userid}
+	</update>
+	<select id="shopping_basket_list" resultType="ShoppingBasketVo">
+		select sb.userid, sb.pro_no, p.pro_name, pp.pro_pic, p.pro_price, sb.pro_quantity, sb.pro_size
+		from tbl_product p, tbl_productpic pp, tbl_shopping_basket sb
+		where sb.userid=#{userid}
+		and sb.pro_no=p.pro_no
+		and pp.pro_pic=(select pro_pic
+		                from tbl_productpic
+		                where pro_pic_main=1
+		                and pro_no=p.pro_no)
+	</select>
+	<delete id="delete_shopping_basket_list">
+		delete from tbl_shopping_basket
+		where userid=#{userid}
+		and pro_no=#{pro_no}
+	</delete>
+	<select id="serviceList" resultType="QuestionVo">
+		select * from tbl_question
+		where userid=#{userid}
+		order by q_no desc
+	</select>
+	<insert id="service_question">
+		insert into tbl_question(userid, pro_no, service_content, service_kind, service_no)
+		values(#{userid}, #{pro_no}, #{service_content}, #{service_kind},sequence_question_no.nextval)
+	</insert>
+	<select id="orderList" resultType="OrderVo">
+		select o.order_no, o.pro_no, o.order_size, o.order_count, o.userid, o.order_step, o.order_addr, o.tracking_no, p.pro_name
+		from tbl_order o, tbl_product p
+		where o.pro_no=p.pro_no
+		and userid=#{userid}
+		order by order_no desc
+	</select>
+	
+	<select id="preOrder" resultType="OrderVo">
+		select sb.userid, sb.pro_no, sb.pro_size as order_size, sb.pro_quantity as order_count, p.pro_price*sb.pro_quantity as pro_price, pp.pro_pic as mainpic, p.pro_name
+		from tbl_shopping_basket sb, tbl_product p, tbl_productpic pp
+		where sb.userid=#{userid}
+        and sb.pro_no=p.pro_no
+		and pp.pro_pic=(select distinct pp.pro_pic
+		                from tbl_productpic
+		                where pro_pic_main=1
+		                and pp.pro_no=#{pro_no})
+		and sb.pro_size=(select DISTINCT sb.pro_size
+		                from tbl_shopping_basket
+		                where pp.pro_pic_main=1)
+        and pro_size=#{pro_size}
+	</select>
+	
+	<select id="orderSeq" resultType="int">
+		select sequence_order_no.nextval from dual
+	</select>
+	
+	<insert id="insertOrder">
+			insert into tbl_order(order_no,pro_no, order_size,order_count, userid,order_addr)
+			values(#{order_no},#{pro_no},#{order_size},#{order_count},#{userid},#{order_addr})
+	</insert>
+	<insert id="insertOrder_date">
+			insert into tbl_order_date(order_no, order_step)
+			values(#{order_no},(select order_step
+						        from tbl_order
+						        where userid=#{userid}
+						        and order_no=#{order_no}))
+	</insert>
+	<delete id="order_delete_Basket">
+		delete from tbl_shopping_basket
+		where userid=#{userid}
+		and pro_no=#{pro_no}
+	</delete>
+	<update id="order_product_count_down">
+		update tbl_productcount set
+		pro_count=pro_count-#{order_count}
+		where pro_no=#{pro_no}
+		and pro_size=#{order_size}
+	</update>
+</mapper>

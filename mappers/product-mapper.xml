@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="mappers.product">
+	<select id="getPro_no" resultType="int">
+		select seq_product.nextval from dual
+	</select>
+
+	<insert id="registProduct">
+		insert into tbl_product
+		  (pro_no, pro_price, pro_name, pro_status, pro_category, seller_id)
+		values(#{pro_no}, #{pro_price}, #{pro_name},
+		  #{pro_status}, #{pro_category}, #{seller_id})
+	</insert>
+	
+	<insert id="registerProductCount">
+		insert into tbl_productcount
+		  (pro_no, pro_size, pro_count)
+		values (#{pro_no}, #{pro_size}, #{pro_count})
+	</insert>
+	
+	<insert id="registProductPic">
+		insert into tbl_productpic
+		  (pro_no, pro_pic, pro_pic_main)
+		values (#{pro_no}, #{pro_pic}, #{pro_pic_main})
+	</insert>
+	
+	<select id="getProductList" resultType="productVo">
+       select * from 
+         (select rownum rnum, a.* from 
+        	<include refid="productSort"/>
+        )
+       where rnum between #{startRow} and #{endRow}
+	   order by rnum
+	</select>
+	
+	<select id="isCorrectId" resultType="int">
+		select count(*) from tbl_product
+		where seller_id = #{seller_id}
+		  and pro_no = #{pro_no}
+	</select>
+	
+	<select id="getProductInfo" resultType="ProductVo">
+		select * from tbl_product
+		where pro_no = #{pro_no}
+	</select>
+	
+	<select id="getProductCountInfo" resultType="ProductCountVo">
+		select * from tbl_productcount
+		where pro_no = #{pro_no}
+		order by pro_size
+	</select>
+	
+	<select id="getProductPicInfo" resultType="ProductPicVo">
+		select * from tbl_productpic
+		where pro_no = #{pro_no}
+		order by pro_pic_main desc
+	</select>
+	
+	<update id="updateSize">
+		update tbl_productcount
+		set pro_count = #{pro_count}
+		where pro_size = #{pro_size}
+		  and pro_no = #{pro_no}
+	</update>
+	
+	<update id="updatePro_name">
+		update tbl_product
+		set pro_name = #{pro_name}
+		where pro_no = #{pro_no}
+	</update>
+	
+	<update id="updatePro_price">
+		update tbl_product
+		set pro_price = #{pro_price}
+		where pro_no = #{pro_no}
+	</update>
+	
+	<update id="modifyImageData">
+		update tbl_productpic
+		set pro_pic = #{new_pro_pic}
+		where pro_pic = #{old_pro_pic}
+	</update>
+	
+	<delete id="deleteImageData">
+		delete from tbl_productpic
+		where pro_pic = #{pro_pic}
+	</delete>
+	
+	<select id="getProductCount" resultType="int">
+		select count(*) from 
+		<include refid="productSort"/>
+	</select>
+	
+	<select id="getProductInfoByOrder" resultType="ProductVo">
+       select pro.*, prop.pro_pic mainpic from tbl_product pro, tbl_productpic prop
+	   where pro.pro_no = (select pro_no from tbl_order where order_no = #{order_no})
+         and prop.pro_no = pro.pro_no 
+         and prop.pro_pic_main = 1
+ 	</select>
+ 	
+ 	
+	<select id="getProductRevenueBySellerId" resultType="ProductVo">
+	select tbp.pro_no, tbpp.pro_pic mainpic, tbp.pro_name, 
+	  (tbp.pro_price * pro_count) pro_revenue, pro_count
+	from tbl_product tbp, tbl_productpic tbpp, 
+	    (select pro_no, sum(mtbo.order_count) pro_count 
+		 from tbl_order mtbo, tbl_order_date mtbod 
+		 where mtbo.order_no = mtbod.order_no 
+		   and mtbod.order_step = 2
+		 group by pro_no) tbo
+	where seller_id = #{seller_id}
+  	  and tbp.pro_no = tbpp.pro_no
+  	  and tbpp.pro_pic_main = 1
+  	  and tbp.pro_no = tbo.pro_no
+  	  and rownum between 1 and 6
+	order by pro_revenue desc
+	</select>
+	
+	<select id="getSizeExist" resultType="int">
+		select count(*)
+		from tbl_productcount
+		where pro_no = #{pro_no}
+		  and pro_size = #{pro_size}
+	</select>
+	
+	<insert id="insertSize">
+		insert into tbl_productcount(
+		  pro_no, pro_size, pro_count)
+		 values(#{pro_no}, #{pro_size}, #{pro_count})
+	</insert>
+	
+	<!-- 정렬 -->
+	<sql id="productSort">
+	(select prod.*, prop.pro_pic mainpic,
+      nvl(proc.cnt,0) cnt 
+     from tbl_product prod, tbl_productpic prop 
+     left outer join 
+       (select pro_no, count(*) cnt
+        from tbl_productcount
+        where pro_count > 0
+        group by pro_no) proc
+     on prop.pro_no = proc.pro_no
+     where prod.pro_no = prop.pro_no
+       and prop.pro_pic_main = 1
+       and seller_id = #{seller_id}
+     order by prod.pro_no desc) a
+	<if test="pro_count_status != null">
+	  <choose>
+		<when test="pro_count_status == 1">
+		  where cnt > 0
+		</when>
+    	<when test="pro_count_status == 2">
+    	  where cnt = 0
+        </when>
+	  </choose>
+	</if>
+	</sql>
+</mapper>

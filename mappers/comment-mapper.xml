@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="mappers.comment">
+
+	<insert id="insertComment">
+		insert into tbl_comment
+		(cno, pro_no, content, userid,
+		commentstar)
+		values
+		(seq_comment_cno.nextval, #{pro_no},
+		#{content},
+		#{userid}, #{commentstar})
+	</insert>
+
+	<select id="checkBasket" resultType="BasketVo">
+		select * from tbl_shopping_basket
+		where pro_no=#{pro_no}
+		and pro_size=#{pro_size}
+		and userid=#{userid}
+	</select>
+	<update id="updateBasket">
+		update tbl_shopping_basket set
+		pro_quantity=pro_quantity+#{pro_quantity}
+		where pro_no=#{pro_no}
+		and pro_size=#{pro_size}
+		and userid=#{userid}
+	</update>
+	<insert id="insertBasket">
+		insert into tbl_shopping_basket
+		(userid, pro_no, pro_size, pro_quantity)
+		values
+		(#{userid}, #{pro_no}, #{pro_size}, #{pro_quantity})
+	</insert>
+
+	<select id="list" resultType="CommentVo">
+		select c.cno, c.content, c.regdate,
+		c.pro_no, c.userid, m.userpic, c.commentstar
+		from tbl_comment c,
+		tbl_member m
+		where
+		pro_no = #{pro_no} and m.userid = c.userid
+		order by
+		cno desc
+	</select>
+
+	<!-- 댓글 삭제 -->
+	<delete id="deleteComment">
+		delete from tbl_comment
+		where cno = #{cno}
+	</delete>
+
+	<!-- 댓글 수정 -->
+	<update id="modifyComment">
+		update tbl_comment set
+		content = #{content}
+		where cno =
+		#{cno}
+	</update>
+	
+	
+	
+	<select id="getCommentCount" resultType="int">
+		select count(*) 
+		from tbl_comment
+		where pro_no in 
+		  (select pro_no 
+		   from tbl_product 
+		   where seller_id = #{seller_id}) 
+	</select>
+	
+	<select id="getCommentListBySellerId" resultType="CommentVo">
+		select * from
+		  (select rownum rnum, a.* from
+    	  	(select tbc.*, tbp.pro_name, tbpp.pro_pic, tbm.username, tbm.userpic
+		     from tbl_comment tbc, tbl_member tbm, tbl_product tbp, tbl_productpic tbpp
+		     where tbp.seller_id = #{seller_id} 
+		       and tbc.userid = tbm.userid
+		       and tbp.pro_no = tbpp.pro_no 
+		       and tbpp.pro_pic_main = 1
+		       and tbc.pro_no = tbp.pro_no) a)
+		where rnum between #{startRow} and #{endRow}
+		order by regdate desc
+	</select>
+	
+	<select id="getCommentListByPro_no" resultType="CommentVo">
+		select * from
+		  (select rownum, a.* from
+			(select tbc.*,  tbm.username, tbm.userpic
+			 from tbl_comment tbc, tbl_member tbm
+			 where tbc.userid = tbm.userid
+  			   and tbc.pro_no = #{pro_no}
+			 order by tbc.regdate desc) a)
+		<![CDATA[where rownum <= 3]]>
+	</select>
+	
+	<select id="getStarRatingByPro_no" resultType="double">
+		select nvl(avg(commentstar),0)
+		from tbl_comment
+		where pro_no = #{pro_no}
+	</select>
+</mapper>
